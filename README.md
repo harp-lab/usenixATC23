@@ -1,4 +1,5 @@
 ## Comparison between Souffle, CUDA, and cuDF
+This repo contains the code, data, and instructions for the USENIXATC 2023 paper, "An "
 
 ![alt comparison](screenshots/comparison.png)
 
@@ -16,7 +17,8 @@
 │   │   ├── kernels.cu: Contains CUDA kernels
 │   │   ├── error_handler.cu: Error handling macros for CUDA
 │   │   └── utils.cu: Contains utility functions
-│   ├── job_scripts
+│   ├── Dockerfile
+│   ├── job_scripts: Job Scripts to run the CUDA implementations in ThetaGPU
 │   │   ├── hashjoin-job.sh
 │   │   ├── single-gpu-debug.sh
 │   │   └── single-gpu-job.sh
@@ -33,19 +35,50 @@
 │   │   ├── README.md
 │   │   ├── requirements.txt
 │   │   └── data: contains data for chart
-│   └── rough_docs
-├── data: Contains all datasets
+│   ├── rough_docs: Contains rough docs during development
+│   └── data: Contains all datasets
 ├── README.md
 └── screenshots
     └── comparison.png
 ```
 
 
-## CUDA implementation run instructions 
-- To build and run:
-```shell
+## Dependencies
+### NVIDIA CUDA Toolkit (version 11.4.2 or later)
+- Download and install the NVIDIA CUDA Toolkit from the NVIDIA website: [https://developer.nvidia.com/cuda-toolkit-archive](https://developer.nvidia.com/cuda-toolkit-archive)
+- Follow the installation instructions for your operating system. Make sure to install version 11.4.2 or later.
+
+## Run CUDA Implementation for Transitive Closure Computation
+- To build and run the `Makefile`, navigate to the `code` directory containing the `Makefile`, `tc_cuda.cu`, and `hashjoin.cu` files and run the following command:
+```
 cd code
 make run
+```
+This will build the `tc_cuda.out` executable using the nvcc compiler and run the test target to execute the program.
+
+- To build the executable with debugging flags, run the following command:
+
+```
+make debug
+```
+
+- To build and run the hashjoin target, run the following command:
+
+```
+make hashjoin
+```
+
+- To clean up the built executable, run the following command:
+
+```
+make clean
+```
+
+Make sure to adjust the `NVCC_FLAGS`, `LDFLAGS`, `COMPILER_FLAGS`, `DEBUG_FLAGS`, and `THETA_FLAGS` variables in the `Makefile` as needed for your system configuration and dependencies.
+- To run using Docker image:
+```
+docker build -t tc_cuda_img .
+docker run --gpus all tc_cuda_img
 ```
 
 ## Run instructions for ThetaGPU
@@ -76,6 +109,8 @@ qsub -O hashjoin-job -e hashjoin-job.error hashjoin-job.sh
 qsub single-gpu-job.sh
 qsub hashjoin-job.sh
 ```
+
+Change the directory path `/lus/theta-fs0/projects/dist_relational_alg/shovon/usenixATC23/` with your own path.
 
 - Debug mode and memory check:
 
