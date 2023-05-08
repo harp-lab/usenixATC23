@@ -5,6 +5,41 @@
 ## Datasets
 - Datasets are listed in [data folder](data).
 
+## Folder structure
+```
+.
+├── code
+│   ├── tc_cuda.cu: Main file to run our cuda implementations of transitive closure computation
+│   ├── hashjoin.cu: Standalone hashjoin implementation using CUDA
+│   ├── Makefile
+│   ├── common
+│   │   ├── kernels.cu: Contains CUDA kernels
+│   │   ├── error_handler.cu: Error handling macros for CUDA
+│   │   └── utils.cu: Contains utility functions
+│   ├── job_scripts
+│   │   ├── hashjoin-job.sh
+│   │   ├── single-gpu-debug.sh
+│   │   └── single-gpu-job.sh
+│   ├── datalog_related
+│   │   ├── *.data: All data files prepared for Souffle
+│   │   ├── README.md
+│   │   ├── souffle: Contains souffle package
+│   │   ├── tc.dl: Datalog rules for generating Transitive closure
+│   │   ├── tc_dl.cpp: Souffle generated C++ code
+│   ├── chart_generation: Auxilary utility tool to generate the charts for the paper
+│   │   ├── ...
+│   │   ├── generate_bar_chart.py
+│   │   ├── generate_stacked_bar_chart.py
+│   │   ├── README.md
+│   │   ├── requirements.txt
+│   │   └── data: contains data for chart
+│   └── rough_docs
+├── data: Contains all datasets
+├── README.md
+└── screenshots
+    └── comparison.png
+```
+
 
 ## CUDA implementation run instructions 
 - To build and run:
