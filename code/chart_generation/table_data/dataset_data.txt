@@ -1,0 +1,19 @@
+p2p-Gnutella09 & Directed & 8,114 & 26,013 \\ \hline
+p2p-Gnutella04 & Directed & 10,876 & 39,994 \\ \hline
+usroads & Undirected & 129,164 & 165,435 \\ \hline
+CA-HepTh & Directed & 9,877 & 51,971 \\ \hline
+fe\_body & Undirected & 45,087 & 1,63,734\\ \hline
+p2p-Gnutella31 & Directed & 62,586 &	147,892 \\ \hline
+SF.cedge & Undirected & 1,74,955 & 2,23,001 \\ \hline
+cal.cedge & Undirected & 21,048 & 21,693 \\ \hline
+TG.cedge & Undirected & 18,263 & 23,874 \\ \hline
+OL.cedge & Undirected & 6,105 & 7,035 \\ \hline
+cti & Undirected & 16,840 & 48,232 \\ \hline
+fe\_ocean & Undirected & 143,437 & 409,593 \\ \hline
+loc-Brightkite & Undirected & 58,228 & 214,078 \\ \hline
+fe\_sphere & Undirected & 16,386 & 49,152 \\ \hline
+delaunay\_n16 & Undirected & 65,536 & 196,575 \\ \hline
+ego-Facebook & Undirected & 4,039 & 88,234 \\ \hline
+wing & Undirected & 62,032 & 121,544 \\ \hline
+wiki-Vote & Directed & 8,297 & 103,689 \\ \hline
+luxembourg\_osm & Undirected & 114,599 & 119,666 \\ \hline
