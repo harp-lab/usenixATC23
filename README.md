@@ -1,5 +1,5 @@
-## Comparison between Souffle, CUDA, and cuDF
-This repo contains the code, data, and instructions for the USENIXATC 2023 paper, "An "
+## Transitive Closure Computation
+This repo contains the code, data, and instructions for the USENIXATC 2023 paper: **Towards Iterative Relational Algebra on the GPU**
 
 ![alt comparison](screenshots/comparison.png)
 
