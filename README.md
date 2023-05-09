@@ -35,7 +35,6 @@ This repo contains the code, data, and instructions for the USENIXATC 2023 paper
 │   │   ├── README.md
 │   │   ├── requirements.txt
 │   │   └── data: contains data for chart
-│   ├── rough_docs: Contains rough docs during development
 │   └── data: Contains all datasets
 ├── README.md
 └── screenshots
@@ -75,11 +74,7 @@ make clean
 ```
 
 Make sure to adjust the `NVCC_FLAGS`, `LDFLAGS`, `COMPILER_FLAGS`, `DEBUG_FLAGS`, and `THETA_FLAGS` variables in the `Makefile` as needed for your system configuration and dependencies.
-- To run using Docker image:
-```
-docker build -t tc_cuda_img .
-docker run --gpus all tc_cuda_img
-```
+
 
 ## Run instructions for ThetaGPU
 - Run using Interactive node:
