@@ -17,12 +17,11 @@ WORKDIR /app
 COPY Makefile ./
 COPY tc_cuda.cu ./
 COPY hashjoin.cu ./
-COPY common ./
-COPY data ./
+COPY common ./common/
+COPY data ./data/
 
 # Build the executable
 RUN make build
-
 # Set the entry point to run the executable
 ENTRYPOINT ["/app/tc_cuda.out"]
 
