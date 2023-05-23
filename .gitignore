@@ -102,3 +102,4 @@ venv.bak/
 
 # mypy
 code/.idea/*
+.idea/

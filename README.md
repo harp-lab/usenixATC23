@@ -75,6 +75,38 @@ make clean
 
 Make sure to adjust the `NVCC_FLAGS`, `LDFLAGS`, `COMPILER_FLAGS`, `DEBUG_FLAGS`, and `THETA_FLAGS` variables in the `Makefile` as needed for your system configuration and dependencies.
 
+## Run instructions using Docker
+- Goto `code` folder:
+```shell
+cd code
+```
+- To build Docker image, (here `tc` is the image name):
+```shell
+sudo docker build -t tc .
+```
+- To run the `docker` image:
+```shell
+sudo docker run --gpus all tc
+```
+- After successful run, the output will be like:
+```shell
+Benchmark for OL.cedge_initial
+----------------------------------------------------------
+
+| Dataset | Number of rows | TC size | Iterations | Blocks x Threads | Time (s) |
+| --- | --- | --- | --- | --- | --- |
+| OL.cedge_initial | 7035 | 146120 | 64 | 960 x 512 | 0.0276 |
+
+
+Initialization: 0.0005, Read: 0.0103
+Hashtable rate: 528470545 keys/s, time: 0.0000
+Join: 0.0037
+Deduplication: 0.0055 (sort: 0.0030, unique: 0.0026)
+Memory clear: 0.0017
+Union: 0.0058 (merge: 0.0014)
+Total: 0.0276
+....
+```
 
 ## Run instructions for ThetaGPU
 - Run using Interactive node:
