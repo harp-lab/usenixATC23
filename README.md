@@ -4,7 +4,7 @@ This repo contains the code, data, and instructions for the USENIXATC 2023 paper
 ![alt comparison](screenshots/comparison.png)
 
 ## Datasets
-- Datasets are listed in [data folder](data).
+- Datasets are listed in [data folder](code/data).
 
 ## Folder structure
 ```
@@ -13,6 +13,7 @@ This repo contains the code, data, and instructions for the USENIXATC 2023 paper
 │   ├── tc_cuda.cu: Main file to run our cuda implementations of transitive closure computation
 │   ├── hashjoin.cu: Standalone hashjoin implementation using CUDA
 │   ├── Makefile
+│   ├── output.log: Sample output of the CUDA TC benchmark
 │   ├── common
 │   │   ├── kernels.cu: Contains CUDA kernels
 │   │   ├── error_handler.cu: Error handling macros for CUDA
@@ -27,7 +28,12 @@ This repo contains the code, data, and instructions for the USENIXATC 2023 paper
 │   │   ├── README.md
 │   │   ├── souffle: Contains souffle package
 │   │   ├── tc.dl: Datalog rules for generating Transitive closure
-│   │   ├── tc_dl.cpp: Souffle generated C++ code
+│   │   └── tc_dl.cpp: Souffle generated C++ code
+│   ├── cudf_related
+│   │   ├── README.md
+│   │   ├── transitive_closure.py: Transitive closure computation using cuDF
+│   │   ├── environment.yml: Conda environment file from ThetaGPU
+│   │   └── cudf_submit.sh: Job script for ThetaGPU
 │   ├── chart_generation: Auxilary utility tool to generate the charts for the paper
 │   │   ├── ...
 │   │   ├── generate_bar_chart.py
@@ -43,6 +49,10 @@ This repo contains the code, data, and instructions for the USENIXATC 2023 paper
 
 
 ## Dependencies
+### Hardware
+- The complete benchmark of the CUDA-based transitive closure computation experiment can be executed on an Nvidia A100 GPU with a minimum of 40 GB GPU memory. The ThetaGPU single-GPU node is a suitable choice.
+- Partial benchmarks can be run on other Nvidia GPUs, but they may result in program termination for certain datasets due to limited GPU memory, leading to an instance of the `std::bad_alloc: cudaErrorMemoryAllocation: out of memory` error.
+
 ### NVIDIA CUDA Toolkit (version 11.4.2 or later)
 - Download and install the NVIDIA CUDA Toolkit from the NVIDIA website: [https://developer.nvidia.com/cuda-toolkit-archive](https://developer.nvidia.com/cuda-toolkit-archive)
 - Follow the installation instructions for your operating system. Make sure to install version 11.4.2 or later.
@@ -119,7 +129,7 @@ git fetch
 git reset --hard origin/main
 make run
 ```
-- Run using job scripts listed in [job_scripts folder](job_scripts):
+- Run using job scripts listed in [job_scripts folder](code/job_scripts):
 ```
 # submit job
 ssh USERNAME@theta.alcf.anl.gov
@@ -139,7 +149,82 @@ qsub hashjoin-job.sh
 
 Change the directory path `/lus/theta-fs0/projects/dist_relational_alg/shovon/usenixATC23/` with your own path.
 
-- Debug mode and memory check:
+## Reproduce CUDA Transitive Closure Benchmark
+- The table below displays the reproducible benchmark results for transitive closure computation using our CUDA-based implementation.
+- The benchmark was generated using an Nvidia A100 GPU with 80GB of memory on a machine with 128 CPU cores.
+- The last column presents the results mentioned in the paper, utilizing the Theta GPU.
+- Reproduce benchmark using Docker image:
+```shell
+# Clone the repository
+git clone https://github.com/harp-lab/usenixATC23/
+cd usenixATC23/code
+
+# Build the Docker image
+sudo docker build -t tc .
+
+# Run the Docker container with GPU support
+sudo docker run --name tc --gpus all tc
+```
+
+| Dataset        | Number of rows | TC size    | Iterations | Blocks x Threads | Reproduced Results (Time/s) | Results in Paper |
+|----------------|----------------|------------|------------|------------------|-----------------------------|------------------|
+| CA-HepTh       | 51971          | 74619885   | 18         | 3456 x 512       | 2.6466                      | 4.318            |
+| SF.cedge       | 223001         | 80498014   | 287        | 3456 x 512       | 10.9905                     | 11.274           |
+| ego-Facebook   | 88234          | 2508102    | 17         | 3456 x 512       | 0.4904                      | 0.544            |
+| wiki-Vote      | 103689         | 11947132   | 10         | 3456 x 512       | 1.1286                      | 1.137            |
+| p2p-Gnutella09 | 26013          | 21402960   | 20         | 3456 x 512       | 0.5904                      | 0.720            |
+| p2p-Gnutella04 | 39994          | 47059527   | 26         | 3456 x 512       | 2.3231                      | 2.092            |
+| cal.cedge      | 21693          | 501755     | 195        | 3456 x 512       | 0.4554                      | 0.489            |
+| TG.cedge       | 23874          | 481121     | 58         | 3456 x 512       | 0.2169                      | 0.198            |
+| OL.cedge       | 7035           | 146120     | 64         | 3456 x 512       | 0.0603                      | 0.148            |
+| luxembourg_osm | 119666         | 5022084    | 426        | 3456 x 512       | 1.0415                      | 1.322            |
+| fe_sphere      | 49152          | 78557912   | 188        | 3456 x 512       | 13.1435                     | 13.159           |
+| fe_body        | 163734         | 156120489  | 188        | 3456 x 512       | 51.3611                     | 47.758           |
+| cti            | 48232          | 6859653    | 53         | 3456 x 512       | 0.4082                      | 0.295            |
+| fe_ocean       | 409593         | 1669750513 | 247        | 3456 x 512       | 131.7318                    | 138.237          |
+| wing           | 121544         | 329438     | 11         | 3456 x 512       | 0.0397                      | 0.085            |
+| loc-Brightkite | 214078         | 138269412  | 24         | 3456 x 512       | 12.1634                     | 15.880           |
+| delaunay_n16   | 196575         | 6137959    | 101        | 3456 x 512       | 1.5557                      | 1.137            |
+| usroads        | 165435         | 871365688  | 606        | 3456 x 512       | 356.4911                    | 364.554          |
+
+- The [output.log](code/output.log) file contains benchmarking results for all datasets. 
+- Explanation of one dataset (`CA-HepTh`) benchmark output:
+```shell
+Benchmark for CA-HepTh
+----------------------------------------------------------
+
+| Dataset | Number of rows | TC size | Iterations | Blocks x Threads | Time (s) |
+| --- | --- | --- | --- | --- | --- |
+| CA-HepTh | 51971 | 74619885 | 18 | 3456 x 512 | 2.6466 |
+
+
+Initialization: 0.0016, Read: 0.0064
+Hashtable rate: 480927938 keys/s, time: 0.0001
+Join: 0.6094
+Deduplication: 1.6026 (sort: 1.4194, unique: 0.1832)
+Memory clear: 0.1551
+Union: 0.2713 (merge: 0.0226)
+Total: 2.6466
+```
+
+- Benchmark summary:
+  - Dataset: The name of the dataset on which the operation was performed (in this case, `CA-HepTh`).
+  - Number of rows: The total number of rows in the dataset (51971 rows).
+  - TC size: The total number of paths of the given graph in the computed transitive closure (74619885 ).
+  - Iterations: The number of iterations performed during the fixed point iterative transitive closure computation (18 iterations).
+  - Blocks x Threads: The configuration of blocks and threads used for computation (3456 blocks x 512 threads).
+  - Time (s): The total execution time for the operation in seconds (2.6466 seconds).
+- Detailed Breakdown of Execution Time:
+  - Initialization: The time taken for initialization tasks (0.0016 seconds).
+  - Read: The time taken for reading data (0.0064 seconds).
+  - Hashtable rate: The rate at which the hashtable is being processed (480927938 keys/s) and the time taken (0.0001 seconds).
+  - Join: The time taken for the join operation (0.6094 seconds).
+  - Deduplication: The time taken for removing duplicate entries (1.6026 seconds). This time is further broken down into sorting (1.4194 seconds) and finding unique entries (0.1832 seconds).
+  - Memory clear: The time taken for clearing memory (0.1551 seconds).
+  - Union: The time taken for the union operation (0.2713 seconds), which includes merging (0.0226 seconds).
+  - Total: The total execution time for the entire operation (2.6466 seconds).
+
+#### (Optional) Debug mode and memory check:
 
 ```shell
 # debug
@@ -167,6 +252,9 @@ Benchmark for talk 5
 
 ## Souffle code and instructions
 - To run benchmark using Souffle, please follow [datalog_related README file](code/datalog_related/README.md).
+
+## cuDAF code and instructions
+- To run benchmark using cuDF, please follow [cudf_related README file](code/cudf_related/README.md).
 
 ### References
 - [Getting Started on ThetaGPU](https://docs.alcf.anl.gov/theta-gpu/getting-started/)
