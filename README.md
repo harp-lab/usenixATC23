@@ -253,7 +253,7 @@ Benchmark for talk 5
 ## Souffle code and instructions
 - To run benchmark using Souffle, please follow [datalog_related README file](code/datalog_related/README.md).
 
-## cuDAF code and instructions
+## cuDF code and instructions
 - To run benchmark using cuDF, please follow [cudf_related README file](code/cudf_related/README.md).
 
 ### References
