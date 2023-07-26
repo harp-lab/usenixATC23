@@ -256,6 +256,25 @@ Benchmark for talk 5
 ## cuDF code and instructions
 - To run benchmark using cuDF, please follow [cudf_related README file](code/cudf_related/README.md).
 
+## Citation
+We encourage you to cite our work if you have used our work. Use the following BibTeX citation:
+- BibTeX:
+```
+@inproceedings {288749,
+    author = {Ahmedur Rahman Shovon and Thomas Gilray and Kristopher Micinski and Sidharth Kumar},
+    title = {Towards Iterative Relational Algebra on the {GPU}},
+    booktitle = {2023 USENIX Annual Technical Conference (USENIX ATC 23)},
+    year = {2023},
+    isbn = {978-1-939133-35-9},
+    address = {Boston, MA},
+    pages = {1009--1016},
+    url = {https://www.usenix.org/conference/atc23/presentation/shovon},
+    publisher = {USENIX Association},
+    month = jul,
+}
+```
+
+
 ### References
 - [Getting Started on ThetaGPU](https://docs.alcf.anl.gov/theta-gpu/getting-started/)
 - [CUDA — Memory Model blog](https://medium.com/analytics-vidhya/cuda-memory-model-823f02cef0bf)
