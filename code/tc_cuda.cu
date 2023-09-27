@@ -188,6 +188,17 @@ void gpu_tc(const char *data_path, char separator,
         long int projection_rows = (thrust::unique(thrust::device,
                                                    join_result, join_result + join_result_rows,
                                                    is_equal())) - join_result;
+        checkCuda(cudaDeviceSynchronize());
+        Entity* diffed_join_result;
+        checkCuda(cudaMalloc((void**) &diffed_join_result, projection_rows * sizeof(Entity)));
+        Entity* diffed_join_result_end = thrust::set_difference(
+                thrust::device,
+                join_result, join_result+ projection_rows,
+                result, result + result_rows, diffed_join_result, cmp());
+        checkCuda(cudaDeviceSynchronize());
+        cudaFree(join_result);
+        join_result = diffed_join_result;
+        join_result_rows = diffed_join_result_end - diffed_join_result;
         temp_time_end = chrono::high_resolution_clock::now();
         temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
         temp_unique += temp_spent_time;
@@ -355,25 +366,25 @@ void run_benchmark(int grid_size, int block_size, double load_factor) {
 
     // Array of dataset names and paths, filename pattern: data_<number_of_rows>.txt
     string datasets[] = {
-            "OL.cedge_initial", "data/data_7035.txt",
-            "CA-HepTh", "data/data_51971.txt",
-            "SF.cedge", "data/data_223001.txt",
-            "ego-Facebook", "data/data_88234.txt",
-            "wiki-Vote", "data/data_103689.txt",
-            "p2p-Gnutella09", "data/data_26013.txt",
+        //     "OL.cedge_initial", "data/data_10.txt",
+        //     "CA-HepTh", "data/data_51971.txt",
+        //     "SF.cedge", "data/data_223001.txt",
+        //     "ego-Facebook", "data/data_88234.txt",
+        //     "wiki-Vote", "data/data_103689.txt",
+        //     "p2p-Gnutella09", "data/data_26013.txt",
             "p2p-Gnutella04", "data/data_39994.txt",
-            "cal.cedge", "data/data_21693.txt",
-            "TG.cedge", "data/data_23874.txt",
-            "OL.cedge", "data/data_7035.txt",
-            "luxembourg_osm", "data/data_119666.txt",
-            "fe_sphere", "data/data_49152.txt",
-            "fe_body", "data/data_163734.txt",
-            "cti", "data/data_48232.txt",
-            "fe_ocean", "data/data_409593.txt",
-            "wing", "data/data_121544.txt",
-            "loc-Brightkite", "data/data_214078.txt",
-            "delaunay_n16", "data/data_196575.txt",
-            "usroads", "data/data_165435.txt",
+        //     "cal.cedge", "data/data_21693.txt",
+        //     "TG.cedge", "data/data_23874.txt",
+        //     "OL.cedge", "data/data_7035.txt",
+        //     "luxembourg_osm", "data/data_119666.txt",
+        //     "fe_sphere", "data/data_49152.txt",
+        //     "fe_body", "data/data_163734.txt",
+        //     "cti", "data/data_48232.txt",
+        //     "fe_ocean", "data/data_409593.txt",
+        //     "wing", "data/data_121544.txt",
+        //     "loc-Brightkite", "data/data_214078.txt",
+        //     "delaunay_n16", "data/data_196575.txt",
+        //     "usroads", "data/data_165435.txt",
     };
 
     // Iterate over the datasets array
