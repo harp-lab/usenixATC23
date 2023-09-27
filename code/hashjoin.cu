@@ -171,25 +171,26 @@ void run_benchmark(int grid_size, int block_size, double load_factor, int random
     std::cout.imbue(loc);
     char separator = '\t';
     string datasets[] = {
-            "OL.cedge_initial", "data/data_7035.txt",
-            "CA-HepTh", "data/data_51971.txt",
-            "SF.cedge", "data/data_223001.txt",
-            "ego-Facebook", "data/data_88234.txt",
-            "wiki-Vote", "data/data_103689.txt",
-            "p2p-Gnutella09", "data/data_26013.txt",
-            "p2p-Gnutella04", "data/data_39994.txt",
-            "cal.cedge", "data/data_21693.txt",
-            "TG.cedge", "data/data_23874.txt",
+        // "test", "data/data_10.txt"
+            // "OL.cedge_initial", "data/data_7035.txt",
+            // "CA-HepTh", "data/data_51971.txt",
+            // "SF.cedge", "data/data_223001.txt",
+            // "ego-Facebook", "data/data_88234.txt",
+            // "wiki-Vote", "data/data_103689.txt",
+            // "p2p-Gnutella09", "data/data_26013.txt",
+            // "p2p-Gnutella04", "data/data_39994.txt",
+            // "cal.cedge", "data/data_21693.txt",
+            // "TG.cedge", "data/data_23874.txt",
             "OL.cedge", "data/data_7035.txt",
-            "luxembourg_osm", "data/data_119666.txt",
-            "fe_sphere", "data/data_49152.txt",
-            "fe_body", "data/data_163734.txt",
-            "cti", "data/data_48232.txt",
-            "fe_ocean", "data/data_409593.txt",
-            "wing", "data/data_121544.txt",
-            "loc-Brightkite", "data/data_214078.txt",
-            "delaunay_n16", "data/data_196575.txt",
-            "usroads", "data/data_165435.txt",
+            // "luxembourg_osm", "data/data_119666.txt",
+            // "fe_sphere", "data/data_49152.txt",
+            // "fe_body", "data/data_163734.txt",
+            // "cti", "data/data_48232.txt",
+            // "fe_ocean", "data/data_409593.txt",
+            // "wing", "data/data_121544.txt",
+            // "loc-Brightkite", "data/data_214078.txt",
+            // "delaunay_n16", "data/data_196575.txt",
+            // "usroads", "data/data_165435.txt",
 //            "usroads-48", "data/data_161950.txt",
 //            "String 9990", "data/data_9990.txt",
 //            "String 2990", "data/data_2990.txt",
@@ -203,16 +204,16 @@ void run_benchmark(int grid_size, int block_size, double load_factor, int random
 //            "random 2000",
 //            "string 4000",
 //            "string 5000",
-            "random 1000000",
-            "random 2000000",
-            "random 3000000",
-            "random 4000000",
-            "random 5000000",
-            "string 1000000",
-            "string 2000000",
-            "string 3000000",
-            "string 4000000",
-            "string 5000000",
+            // "random 1000000",
+            // "random 2000000",
+            // "random 3000000",
+            // "random 4000000",
+            // "random 5000000",
+            // "string 1000000",
+            // "string 2000000",
+            // "string 3000000",
+            // "string 4000000",
+            // "string 5000000",
     };
 
 
@@ -236,7 +237,8 @@ void run_benchmark(int grid_size, int block_size, double load_factor, int random
             const char *data_path, *dataset_name;
             dataset_name = datasets[i].c_str();
             data_path = datasets[i + 1].c_str();
-            long int row_size = get_row_size(data_path);
+            long int row_size = 4564;
+            // long int row_size = get_row_size(data_path);
             cout << "Benchmark for " << dataset_name << endl;
             cout << "----------------------------------------------------------" << endl;
             gpu_hashjoin(data_path, separator,
@@ -251,7 +253,7 @@ void run_benchmark(int grid_size, int block_size, double load_factor, int random
 
 int main() {
     // set the last parameter to 1 for random graphs
-    run_benchmark(0, 0, 0.1, 1);
+    run_benchmark(0, 0, 0.1, 0);
     return 0;
 }
 
