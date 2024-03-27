@@ -188,6 +188,17 @@ void gpu_tc(const char *data_path, char separator,
         long int projection_rows = (thrust::unique(thrust::device,
                                                    join_result, join_result + join_result_rows,
                                                    is_equal())) - join_result;
+//        checkCuda(cudaDeviceSynchronize());
+        Entity * new_projected_result;
+        checkCuda(cudaMalloc((void**) &new_projected_result, projection_rows * sizeof(Entity)));
+        Entity* new_projected_result_end = thrust::set_difference(
+                thrust::device,
+                join_result, join_result+ projection_rows,
+                result, result + result_rows, new_projected_result, cmp());
+//        checkCuda(cudaDeviceSynchronize());
+        cudaFree(join_result);
+        join_result = new_projected_result;
+        projection_rows = new_projected_result_end - new_projected_result;
         temp_time_end = chrono::high_resolution_clock::now();
         temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
         temp_unique += temp_spent_time;
@@ -233,6 +244,8 @@ void gpu_tc(const char *data_path, char separator,
         cout << concatenated_rows << " | ";
 #endif
         long int deduplicated_result_rows;
+//        long int deduplicated_result_rows = concatenated_rows;
+
         temp_time_begin = chrono::high_resolution_clock::now();
         deduplicated_result_rows = (thrust::unique(thrust::device,
                                                    concatenated_result,
@@ -355,8 +368,9 @@ void run_benchmark(int grid_size, int block_size, double load_factor) {
 
     // Array of dataset names and paths, filename pattern: data_<number_of_rows>.txt
     string datasets[] = {
-            "DATA_6", "data/data_6.txt"
-//            "OL.cedge_initial", "data/data_7035.txt",
+            "DATA_5", "data/data_5.txt",
+            "DATA_6", "data/data_6.txt",
+            "OL.cedge_initial", "data/data_7035.txt",
 //            "CA-HepTh", "data/data_51971.txt",
 //            "SF.cedge", "data/data_223001.txt",
 //            "ego-Facebook", "data/data_88234.txt",
