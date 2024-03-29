@@ -1,5 +1,5 @@
 ## Transitive Closure Computation
-This repo contains the code, data, and instructions for the USENIXATC 2023 paper: **Towards Iterative Relational Algebra on the GPU**
+This repo contains the code, data, and instructions for the USENIXATC 2023 paper: [**Towards Iterative Relational Algebra on the GPU**](https://www.usenix.org/conference/atc23/presentation/shovon)
 
 ![alt comparison](screenshots/comparison.png)
 
@@ -273,6 +273,43 @@ We encourage you to cite our work if you have used our work. Use the following B
     month = jul,
 }
 ```
+
+
+### (Update) Semi-naive evaluation for transitive closure computation
+- Run the semi naive version:
+```shell
+make semi
+```
+- Benchmarked on:
+```shell
+Processor:  13th Gen Intel® Core™ i9-13900H × 20
+Memory:     32 GiB
+GPU:        NVIDIA GeForce RTX™ 4070 Laptop GPU
+GPU VRAM:   8 GiB
+NVIDIA-SMI: 535.161.08
+CUDA:       12.2
+```
+
+| Dataset        | Number of rows | TC size    | Iterations | Blocks x Threads | Naive TC (s)  | Semi naive TC (s) |
+|----------------|----------------|------------|------------|------------------|---------------|-------------------|
+| CA-HepTh       | 51971          | 74619885   | 18         | 1152 x 512       | Out of memory | 1.7599            |
+| SF.cedge       | 223001         | 80498014   | 287        | 1152 x 512       | 18.5606       | 6.5807            |
+| ego-Facebook   | 88234          | 2508102    | 17         | 1152 x 512       | 1.3719        | 0.1578            |
+| wiki-Vote      | 103689         | 11947132   | 10         | 1152 x 512       | 4.2009        | 0.6359            |
+| p2p-Gnutella09 | 26013          | 21402960   | 20         | 1152 x 512       | 1.8393        | 0.3611            |
+| p2p-Gnutella04 | 39994          | 47059527   | 26         | 1152 x 512       | 6.4332        | 0.9508            |
+| cal.cedge      | 21693          | 501755     | 195        | 1152 x 512       | 0.0911        | 0.1032            |
+| TG.cedge       | 23874          | 481121     | 58         | 1152 x 512       | 0.0390        | 0.0541            |
+| OL.cedge       | 7035           | 146120     | 64         | 1152 x 512       | 0.0230        | 0.0323            |
+| luxembourg_osm | 119666         | 5022084    | 426        | 1152 x 512       | 1.0481        | 1.0416            |
+| fe_sphere      | 49152          | 78557912   | 188        | 1152 x 512       | 30.9252       | 4.5548            |
+| fe_body        | 163734         | 156120489  | 188        | 1152 x 512       | Out of memory | 9.6867            |
+| cti            | 48232          | 6859653    | 53         | 1152 x 512       | 0.2764        | 0.2121            |
+| fe_ocean       | 409593         | 1669750513 | 247        | 1152 x 512       | Out of memory | Out of memory     |
+| wing           | 121544         | 329438     | 11         | 1152 x 512       | 0.0292        | 0.0268            |
+| loc-Brightkite | 214078         | 138269412  | 24         | 1152 x 512       | Out of memory | 4.2287            |
+| delaunay_n16   | 196575         | 6137959    | 101        | 1152 x 512       | 1.0119        | 0.3715            |
+| usroads        | 165435         | 871365688  | 606        | 1152 x 512       | Out of memory | Out of memory     |
 
 
 ### References
