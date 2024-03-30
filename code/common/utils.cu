@@ -68,7 +68,6 @@ struct is_equal {
     }
 };
 
-
 struct cmp {
     __host__ __device__
     bool operator()(const Entity &lhs, const Entity &rhs) {
@@ -83,6 +82,17 @@ struct cmp {
                 return false;
             return true;
         }
+    }
+};
+
+struct set_cmp {
+    __host__ __device__
+    bool operator()(const Entity &lhs, const Entity &rhs) {
+        if (lhs.key == rhs.key) {
+            // If keys are equal, compare values
+            return lhs.value < rhs.value;
+        }
+        return lhs.key < rhs.key;
     }
 };
 
@@ -166,6 +176,16 @@ void get_relation_from_file_gpu(int *data, const char *file_path, int total_rows
             }
         }
     }
+}
+
+void get_relation_from_file_gpu_entity(Entity *data, const char *file_path, int total_rows, int total_columns, char separator) {
+    FILE *data_file = fopen(file_path, "r");
+    for (int i = 0; i < total_rows; i++) {
+        Entity entity;
+        fscanf(data_file, "%d%c%d", &entity.key, &separator, &entity.value);
+        data[i] = entity;
+    }
+    fclose(data_file);
 }
 
 

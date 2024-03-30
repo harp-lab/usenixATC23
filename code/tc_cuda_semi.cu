@@ -31,6 +31,7 @@ void gpu_tc(const char *data_path, char separator,
     std::chrono::high_resolution_clock::time_point temp_time_end;
     KernelTimer timer;
     time_point_begin = chrono::high_resolution_clock::now();
+    temp_time_begin = chrono::high_resolution_clock::now();
     double spent_time;
     output.initialization_time = 0;
     output.join_time = 0;
@@ -45,23 +46,13 @@ void gpu_tc(const char *data_path, char separator,
     double temp_spent_time = 0.0;
 
     int block_size, grid_size;
-    int *relation;
-    int *relation_host;
-    Entity *hash_table, *result, *t_delta;
-    Entity *result_host;
-    long int join_result_rows;
-    long int t_delta_rows = relation_rows;
-    long int result_rows = relation_rows;
-    long int iterations = 0;
-    long int hash_table_rows = (long int) relation_rows / load_factor;
-    hash_table_rows = pow(2, ceil(log(hash_table_rows) / log(2)));
+    Entity *relation;
+    Entity *relation_host;
+    Entity *hash_table, *t_full, *t_delta;
+    Entity *t_full_host;
 
-    checkCuda(cudaMallocHost((void **) &relation_host, relation_rows * relation_columns * sizeof(int)));
-    checkCuda(cudaMalloc((void **) &relation, relation_rows * relation_columns * sizeof(int)));
-    checkCuda(cudaMalloc((void **) &result, result_rows * sizeof(Entity)));
-    checkCuda(cudaMalloc((void **) &t_delta, relation_rows * sizeof(Entity)));
-    checkCuda(cudaMalloc((void **) &hash_table, hash_table_rows * sizeof(Entity)));
-
+    checkCuda(cudaMallocHost((void **) &relation_host, relation_rows * sizeof(Entity)));
+    checkCuda(cudaMalloc((void **) &relation, relation_rows * sizeof(Entity)));
     // Block size is 512 if preferred_block_size is 0
     block_size = 512;
     // Grid size is 32 times of the number of streaming multiprocessors if preferred_grid_size is 0
@@ -72,28 +63,48 @@ void gpu_tc(const char *data_path, char separator,
     if (preferred_block_size != 0) {
         block_size = preferred_block_size;
     }
-    time_point_end = chrono::high_resolution_clock::now();
-    spent_time = get_time_spent("", time_point_begin, time_point_end);
-    output.initialization_time += spent_time;
-    time_point_begin = chrono::high_resolution_clock::now();
-    get_relation_from_file_gpu(relation_host, data_path,
-                               relation_rows, relation_columns, separator);
-    cudaMemcpy(relation, relation_host, relation_rows * relation_columns * sizeof(int),
+    temp_time_end = chrono::high_resolution_clock::now();
+    temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
+    output.initialization_time += temp_spent_time;
+    temp_time_begin = chrono::high_resolution_clock::now();
+    get_relation_from_file_gpu_entity(relation_host, data_path,
+                                      relation_rows, relation_columns, separator);
+    cudaMemcpy(relation, relation_host, relation_rows * sizeof(Entity),
                cudaMemcpyHostToDevice);
-    time_point_end = chrono::high_resolution_clock::now();
-    spent_time = get_time_spent("", time_point_begin, time_point_end);
-    output.read_time = spent_time;
-
+    temp_time_end = chrono::high_resolution_clock::now();
+    temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
+    output.read_time = temp_spent_time;
+    temp_time_begin = chrono::high_resolution_clock::now();
+    thrust::stable_sort(thrust::device, relation, relation + relation_rows, set_cmp());
+    temp_time_end = chrono::high_resolution_clock::now();
+    temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
+    sort_time += temp_spent_time;
+    output.deduplication_time += temp_spent_time;
+    temp_time_begin = chrono::high_resolution_clock::now();
+    relation_rows = (thrust::unique(thrust::device,
+                                    relation, relation + relation_rows,
+                                    is_equal())) - relation;
+    temp_time_end = chrono::high_resolution_clock::now();
+    temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
+    output.deduplication_time += temp_spent_time;
+    temp_time_begin = chrono::high_resolution_clock::now();
+    long int t_delta_rows = relation_rows;
+    long int t_full_rows = relation_rows;
+    long int iterations = 0;
+    long int hash_table_rows = (long int) relation_rows / load_factor;
+    hash_table_rows = pow(2, ceil(log(hash_table_rows) / log(2)));
+    checkCuda(cudaMalloc((void **) &t_full, t_full_rows * sizeof(Entity)));
+    checkCuda(cudaMalloc((void **) &t_delta, t_delta_rows * sizeof(Entity)));
+    checkCuda(cudaMalloc((void **) &hash_table, hash_table_rows * sizeof(Entity)));
     Entity negative_entity;
     negative_entity.key = -1;
     negative_entity.value = -1;
-    time_point_begin = chrono::high_resolution_clock::now();
     thrust::fill(thrust::device, hash_table, hash_table + hash_table_rows, negative_entity);
-    time_point_end = chrono::high_resolution_clock::now();
-    spent_time = get_time_spent("", time_point_begin, time_point_end);
+    temp_time_end = chrono::high_resolution_clock::now();
+    spent_time = get_time_spent("", temp_time_begin, temp_time_end);
     output.initialization_time += spent_time;
     timer.start_timer();
-    build_hash_table<<<grid_size, block_size>>>
+    build_hash_table_entity<<<grid_size, block_size>>>
             (hash_table, hash_table_rows,
              relation, relation_rows,
              relation_columns);
@@ -106,60 +117,51 @@ void gpu_tc(const char *data_path, char separator,
 
     timer.start_timer();
     // initial result and t delta both are same as the input relation
-    initialize_result_t_delta<<<grid_size, block_size>>>(result, t_delta, relation, relation_rows, relation_columns);
+    initialize_result_t_delta_entity<<<grid_size, block_size>>>(t_full,
+                                                                t_delta, relation, relation_rows, relation_columns);
     checkCuda(cudaDeviceSynchronize());
     timer.stop_timer();
     spent_time = timer.get_spent_time();
     output.union_time += spent_time;
-    temp_time_begin = chrono::high_resolution_clock::now();
-    thrust::stable_sort(thrust::device, result, result + relation_rows, cmp());
-    temp_time_end = chrono::high_resolution_clock::now();
-    temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
-    sort_time += temp_spent_time;
-    output.deduplication_time += temp_spent_time;
 
-    time_point_begin = chrono::high_resolution_clock::now();
+    temp_time_begin = chrono::high_resolution_clock::now();
     cudaFree(relation);
     cudaFreeHost(relation_host);
-    time_point_end = chrono::high_resolution_clock::now();
-    spent_time = get_time_spent("", time_point_begin, time_point_end);
+    temp_time_end = chrono::high_resolution_clock::now();
+    spent_time = get_time_spent("", temp_time_begin, temp_time_end);
     output.memory_clear_time += spent_time;
 
-#ifdef DEBUG
-    cout << "| Iteration | #T Delta | #Join | #Deduplicated join | #Union | #Deduplicated Union | ";
-    cout << "Join(s) | Union(s) | Deduplication(s) | Memory clear(s)|"<< endl;
-    cout << "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |" << endl;
-#endif
     // Run the fixed point iterations for transitive closure computation
     while (true) {
         double temp_join = 0.0, temp_union = 0.0, temp_deduplication = 0.0, temp_memory_clear = 0.0;
         double temp_merge = 0.0, temp_sort = 0.0, temp_unique = 0.0;
-#ifdef DEBUG
-        cout << "| " << iterations+1 << " | "<< t_delta_rows << " | ";
-#endif
-        time_point_begin = chrono::high_resolution_clock::now();
+        temp_time_begin = chrono::high_resolution_clock::now();
         int *offset;
+        long int join_result_rows;
         Entity *join_result;
+        Entity *new_t_full;
+        Entity *new_t_delta;
+
         checkCuda(cudaMalloc((void **) &offset, t_delta_rows * sizeof(int)));
-        time_point_end = chrono::high_resolution_clock::now();
-        spent_time = get_time_spent("", time_point_begin, time_point_end);
+        temp_time_end = chrono::high_resolution_clock::now();
+        spent_time = get_time_spent("", temp_time_begin, temp_time_end);
         temp_join += spent_time;
         output.join_time += spent_time;
         timer.start_timer();
         // First pass to get the join result size for each row of t_delta
-        get_join_result_size<<<grid_size, block_size>>>(hash_table, hash_table_rows, t_delta, t_delta_rows,
-                                                        offset);
+        get_join_result_size<<<grid_size, block_size>>>(hash_table, hash_table_rows,
+                                                        t_delta, t_delta_rows, offset);
         checkCuda(cudaDeviceSynchronize());
         timer.stop_timer();
         spent_time = timer.get_spent_time();
         temp_join += spent_time;
         output.join_time += spent_time;
-        time_point_begin = chrono::high_resolution_clock::now();
+        temp_time_begin = chrono::high_resolution_clock::now();
         join_result_rows = thrust::reduce(thrust::device, offset, offset + t_delta_rows, 0);
         thrust::exclusive_scan(thrust::device, offset, offset + t_delta_rows, offset);
         checkCuda(cudaMalloc((void **) &join_result, join_result_rows * sizeof(Entity)));
-        time_point_end = chrono::high_resolution_clock::now();
-        spent_time = get_time_spent("", time_point_begin, time_point_end);
+        temp_time_end = chrono::high_resolution_clock::now();
+        spent_time = get_time_spent("", temp_time_begin, temp_time_end);
         temp_join += spent_time;
         output.join_time += spent_time;
         timer.start_timer();
@@ -171,13 +173,8 @@ void gpu_tc(const char *data_path, char separator,
         spent_time = timer.get_spent_time();
         temp_join += spent_time;
         output.join_time += spent_time;
-#ifdef DEBUG
-        cout << join_result_rows << " | ";
-#endif
-        // deduplication of projection
-        // first sort the array and then remove consecutive duplicated elements
         temp_time_begin = chrono::high_resolution_clock::now();
-        thrust::stable_sort(thrust::device, join_result, join_result + join_result_rows, cmp());
+        thrust::stable_sort(thrust::device, join_result, join_result + join_result_rows, set_cmp());
         temp_time_end = chrono::high_resolution_clock::now();
         temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
         temp_sort += temp_spent_time;
@@ -185,134 +182,114 @@ void gpu_tc(const char *data_path, char separator,
         sort_time += temp_spent_time;
         output.deduplication_time += temp_spent_time;
         temp_time_begin = chrono::high_resolution_clock::now();
-        long int projection_rows = (thrust::unique(thrust::device,
-                                                   join_result, join_result + join_result_rows,
-                                                   is_equal())) - join_result;
+        long int unique_join_result_rows = thrust::unique(thrust::device,
+                                                          join_result, join_result + join_result_rows,
+                                                          is_equal()) - join_result;
+
         temp_time_end = chrono::high_resolution_clock::now();
         temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
         temp_unique += temp_spent_time;
         temp_deduplication += temp_spent_time;
         unique_time += temp_spent_time;
         output.deduplication_time += temp_spent_time;
-#ifdef DEBUG
-        cout << projection_rows << " | ";
-#endif
-        time_point_begin = chrono::high_resolution_clock::now();
+
+        temp_time_begin = chrono::high_resolution_clock::now();
+        long int new_t_full_rows = unique_join_result_rows + t_full_rows;
+        checkCuda(cudaMalloc((void **) &new_t_full, new_t_full_rows * sizeof(Entity)));
+        new_t_full_rows = thrust::set_union(thrust::device,
+                                            t_full, t_full + t_full_rows,
+                                            join_result, join_result + unique_join_result_rows,
+                                            new_t_full, set_cmp()) - new_t_full;
+        temp_time_end = chrono::high_resolution_clock::now();
+        temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
+        temp_union += temp_spent_time;
+        output.union_time += temp_spent_time;
+
+        temp_time_begin = chrono::high_resolution_clock::now();
+        checkCuda(cudaMalloc((void **) &new_t_delta, unique_join_result_rows * sizeof(Entity)));
+        t_delta_rows = thrust::set_difference(
+                thrust::device,
+                new_t_full, new_t_full + new_t_full_rows,
+                t_full, t_full + t_full_rows,
+                new_t_delta, set_cmp()) - new_t_delta;
+        temp_time_end = chrono::high_resolution_clock::now();
+        temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
+        temp_unique += temp_spent_time;
+        unique_time += temp_spent_time;
+        temp_deduplication += temp_spent_time;
+        output.deduplication_time += temp_spent_time;
+
+        temp_time_begin = chrono::high_resolution_clock::now();
         cudaFree(t_delta);
-        time_point_end = chrono::high_resolution_clock::now();
-        spent_time = get_time_spent("", time_point_begin, time_point_end);
+        temp_time_end = chrono::high_resolution_clock::now();
+        spent_time = get_time_spent("", temp_time_begin, temp_time_end);
         temp_memory_clear += spent_time;
         output.memory_clear_time += spent_time;
-        time_point_begin = chrono::high_resolution_clock::now();
-        checkCuda(cudaMalloc((void **) &t_delta, projection_rows * sizeof(Entity)));
-        thrust::copy(thrust::device, join_result, join_result + projection_rows, t_delta);
-        time_point_end = chrono::high_resolution_clock::now();
-        spent_time = get_time_spent("", time_point_begin, time_point_end);
+
+        temp_time_begin = chrono::high_resolution_clock::now();
+        checkCuda(cudaMalloc((void **) &t_delta, t_delta_rows * sizeof(Entity)));
+        thrust::copy(thrust::device,
+                     new_t_delta, new_t_delta + t_delta_rows,
+                     t_delta);
+        temp_time_end = chrono::high_resolution_clock::now();
+        spent_time = get_time_spent("", temp_time_begin, temp_time_end);
         temp_join += spent_time;
         output.join_time += spent_time;
 
-        time_point_begin = chrono::high_resolution_clock::now();
-        Entity *concatenated_result;
-        long int concatenated_rows = projection_rows + result_rows;
-        checkCuda(cudaMalloc((void **) &concatenated_result, concatenated_rows * sizeof(Entity)));
         temp_time_begin = chrono::high_resolution_clock::now();
-        // merge two sorted array: previous result and join result
-        thrust::merge(thrust::device,
-                      result, result + result_rows,
-                      join_result, join_result + projection_rows,
-                      concatenated_result, cmp());
+        cudaFree(t_full);
         temp_time_end = chrono::high_resolution_clock::now();
-        temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
-        temp_merge += temp_spent_time;
-        merge_time += temp_spent_time;
-        time_point_end = chrono::high_resolution_clock::now();
-        spent_time = get_time_spent("", time_point_begin, time_point_end);
-        temp_union += spent_time;
-        output.union_time += spent_time;
-#ifdef DEBUG
-        cout << concatenated_rows << " | ";
-#endif
-        long int deduplicated_result_rows;
-        temp_time_begin = chrono::high_resolution_clock::now();
-        deduplicated_result_rows = (thrust::unique(thrust::device,
-                                                   concatenated_result,
-                                                   concatenated_result + concatenated_rows,
-                                                   is_equal())) - concatenated_result;
-        temp_time_end = chrono::high_resolution_clock::now();
-        temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
-        temp_unique += temp_spent_time;
-        unique_time += temp_spent_time;
-        temp_deduplication += temp_spent_time;
-        output.deduplication_time += temp_spent_time;
-        time_point_begin = chrono::high_resolution_clock::now();
-        cudaFree(result);
-        time_point_end = chrono::high_resolution_clock::now();
-        spent_time = get_time_spent("", time_point_begin, time_point_end);
+        spent_time = get_time_spent("", temp_time_end, temp_time_end);
         temp_memory_clear += spent_time;
         output.memory_clear_time += spent_time;
-        time_point_begin = chrono::high_resolution_clock::now();
-        checkCuda(cudaMalloc((void **) &result, deduplicated_result_rows * sizeof(Entity)));
-        // Copy the deduplicated concatenated result to result
-        thrust::copy(thrust::device, concatenated_result,
-                     concatenated_result + deduplicated_result_rows, result);
-        time_point_end = chrono::high_resolution_clock::now();
-        spent_time = get_time_spent("", time_point_begin, time_point_end);
-        temp_union += spent_time;
-        output.union_time += spent_time; // changed this time from deduplication to union
-#ifdef DEBUG
-        cout << deduplicated_result_rows << " | ";
-#endif
-        t_delta_rows = projection_rows;
-        time_point_begin = chrono::high_resolution_clock::now();
-        // Clear intermediate memory
+        temp_time_begin = chrono::high_resolution_clock::now();
+        checkCuda(cudaMalloc((void **) &t_full, new_t_full_rows * sizeof(Entity)));
+        thrust::copy(thrust::device, new_t_full, new_t_full + new_t_full_rows, t_full);
+        temp_time_end = chrono::high_resolution_clock::now();
+        temp_spent_time = get_time_spent("", temp_time_begin, temp_time_end);
+        temp_union += temp_spent_time;
+        output.union_time += temp_spent_time;
+        t_full_rows = new_t_full_rows;
+        temp_time_begin = chrono::high_resolution_clock::now();
+        cudaFree(new_t_delta);
         cudaFree(join_result);
         cudaFree(offset);
-        cudaFree(concatenated_result);
-        time_point_end = chrono::high_resolution_clock::now();
-        spent_time = get_time_spent("", time_point_begin, time_point_end);
+        cudaFree(new_t_full);
+        temp_time_end = chrono::high_resolution_clock::now();
+        spent_time = get_time_spent("", temp_time_end, temp_time_end);
         temp_memory_clear += spent_time;
         output.memory_clear_time += spent_time;
-#ifdef DEBUG
-        cout << temp_join << " | ";
-        cout << temp_union << " | ";
-        cout << temp_deduplication << " | ";
-        cout << temp_memory_clear << " | " << endl;
-#endif
-
-        if (result_rows == deduplicated_result_rows) {
-            iterations++;
+        iterations++;
+        if (t_delta_rows == 0) {
             break;
         }
-        result_rows = deduplicated_result_rows;
-        iterations++;
     }
-//    show_entity_array(result, result_rows, "Result");
-    time_point_begin = chrono::high_resolution_clock::now();
-    checkCuda(cudaMallocHost((void **) &result_host, result_rows * sizeof(Entity)));
-    cudaMemcpy(result_host, result, result_rows * sizeof(Entity),
+    temp_time_begin = chrono::high_resolution_clock::now();
+    checkCuda(cudaMallocHost((void **) &t_full_host, t_full_rows * sizeof(Entity)));
+    cudaMemcpy(t_full_host, t_full, t_full_rows * sizeof(Entity),
                cudaMemcpyDeviceToHost);
-    time_point_end = chrono::high_resolution_clock::now();
-    spent_time = get_time_spent("", time_point_begin, time_point_end);
+
+    temp_time_end = chrono::high_resolution_clock::now();
+    spent_time = get_time_spent("", temp_time_begin, temp_time_end);
     output.union_time += spent_time;
-    time_point_begin = chrono::high_resolution_clock::now();
+    temp_time_begin = chrono::high_resolution_clock::now();
     // Clear memory
     cudaFree(t_delta);
-    cudaFree(result);
+    cudaFree(t_full);
     cudaFree(hash_table);
-    cudaFreeHost(result_host);
-    time_point_end = chrono::high_resolution_clock::now();
-    spent_time = get_time_spent("", time_point_begin, time_point_end);
+    cudaFreeHost(t_full_host);
+    temp_time_end = chrono::high_resolution_clock::now();
+    spent_time = get_time_spent("", temp_time_begin, temp_time_end);
     output.memory_clear_time += spent_time;
     double calculated_time = output.initialization_time +
                              output.read_time + output.reverse_time + output.hashtable_build_time + output.join_time +
                              output.projection_time +
                              output.union_time + output.deduplication_time + output.memory_clear_time;
-    cout << endl;
     cout << "| Dataset | Number of rows | TC size | Iterations | Blocks x Threads | Time (s) |" << endl;
     cout << "| --- | --- | --- | --- | --- | --- |" << endl;
-    cout << "| " << dataset_name << " | " << relation_rows << " | " << result_rows;
+    cout << "| " << dataset_name << " | " << relation_rows << " | " << t_full_rows;
     cout << fixed << " | " << iterations << " | ";
-    cout << fixed << grid_size << " x " << block_size << " | " << calculated_time << " |\n" << endl;
+    cout << fixed << grid_size << " x " << block_size << " | " << calculated_time << " |" << endl;
     output.block_size = block_size;
     output.grid_size = grid_size;
     output.input_rows = relation_rows;
@@ -332,6 +309,10 @@ void gpu_tc(const char *data_path, char separator,
     cout << "Memory clear: " << output.memory_clear_time << endl;
     cout << "Union: " << output.union_time << " (merge: " << merge_time << ")" << endl;
     cout << "Total: " << output.total_time << endl;
+    time_point_end = chrono::high_resolution_clock::now();
+    spent_time = get_time_spent("", time_point_begin, time_point_end);
+    cout << "Total (wrap): " << spent_time << endl;
+
 }
 
 void run_benchmark(int grid_size, int block_size, double load_factor) {
@@ -368,8 +349,8 @@ void run_benchmark(int grid_size, int block_size, double load_factor) {
             "luxembourg_osm", "data/data_119666.txt",
             "fe_sphere", "data/data_49152.txt",
             "fe_body", "data/data_163734.txt",
-//            "cti", "data/data_48232.txt",
-//            "fe_ocean", "data/data_409593.txt",
+            "cti", "data/data_48232.txt",
+            "fe_ocean", "data/data_409593.txt",
             "wing", "data/data_121544.txt",
             "loc-Brightkite", "data/data_214078.txt",
             "delaunay_n16", "data/data_196575.txt",
@@ -408,5 +389,5 @@ int main() {
 
 /*
 Run instructions:
-make run
+make semi
 */
