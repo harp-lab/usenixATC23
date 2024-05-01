@@ -275,8 +275,8 @@ We encourage you to cite our work if you have used our work. Use the following B
 ```
 
 
-### (Update) Semi-naive evaluation for transitive closure computation
-- Run the semi naive version:
+### (Update) Semi-naïve evaluation for transitive closure computation
+- Run the semi-naïve version:
 ```shell
 make semi
 ```
@@ -290,7 +290,11 @@ NVIDIA-SMI: 535.161.08
 CUDA:       12.2
 ```
 
-| Dataset        | Number of rows | TC size    | Iterations | Blocks x Threads | Naive TC (s)  | Semi naive TC (s) |
+![alt naïve vs semi-naïve evaluation](code/chart_generation/output/naive_semi_naive.png)
+*Figure: Naïve vs semi-evaluation evaluation comparison of transitive closure computation. Note the absence of bars, indicating datasets where the naïve evaluation got out of memory error.*
+
+#### Naïve vs semi-evaluation evaluation comparison of transitive closure computation extended results
+| Dataset        | Number of rows | TC size    | Iterations | Blocks x Threads | Naïve TC (s)  | Semi-naïve TC (s) |
 |----------------|----------------|------------|------------|------------------|---------------|-------------------|
 | CA-HepTh       | 51971          | 74619885   | 18         | 1152 x 512       | Out of memory | 1.7599            |
 | SF.cedge       | 223001         | 80498014   | 287        | 1152 x 512       | 18.5606       | 6.5807            |
