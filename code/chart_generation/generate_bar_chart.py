@@ -148,9 +148,25 @@ def show_cuda_souffle_cudf():
                    x_label, y_label,
                    figure_path=output_filename, figure_width=16, figure_height=6)
 
+def show_naive_semi_naive():
+    dataset_labels = ['CA-HepTh', 'SF.cedge', 'p2p-Gnutella09', 'p2p-Gnutella04',
+                      'luxembourg_osm', 'wiki-Vote', 'ego-Facebook', 'delaunay_n16',
+                      'fe_sphere', 'loc-Brightkite', 'fe_body']
+    cuda_dataset = [0, 18.5606, 1.8393, 6.4332, 1.0481, 4.2009,1.3719,1.0119, 30.9252, 0, 0]
+    cuda_dataset_title = "GPUJoin (naïve)"
+    souffle_dataset = [1.7599, 6.5807, 0.3611, 0.9508, 1.0416, 0.6359, 0.1578, 0.3715, 4.5548, 4.2287, 9.6867]
+    souffle_dataset_title = "GPUJoin (semi-naïve)"
+    x_label = "Datasets"
+    y_label = "Execution Time(s) (log scale)"
+    output_filename = os.path.join("output", "naive_semi_naive.png")
+    draw_bar_chart(dataset_labels, [cuda_dataset, souffle_dataset],
+                   [cuda_dataset_title, souffle_dataset_title],
+                   x_label, y_label,
+                   figure_path=output_filename, figure_width=14, figure_height=6)
 
 if __name__ == "__main__":
     show_cuda_cudf_join()
+    show_naive_semi_naive()  
     # show_cuda_pinned_unified()
     # show_cuda_souffle()
     # show_cuda_cudf()
